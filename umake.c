@@ -91,3 +91,8 @@ void processline (char* line) {
   }
   }
 }
+
+char** arg_parse(char*line){
+  char** args = malloc (10 * sizeof(char*));
+  return args;
+}
