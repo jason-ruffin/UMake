@@ -21,6 +21,7 @@
  */
 void processline(char* line);
 
+char** arg_parse(char* line);
 /* Main entry point.
  * argc    A count of command-line arguments 
  * argv    The command-line argument valus
@@ -37,7 +38,8 @@ int main(int argc, const char* argv[]) {
   size_t  bufsize = 0;
   char*   line    = NULL;
   ssize_t linelen = getline(&line, &bufsize, makefile);
-  
+    
+
   while(-1 != linelen) {
 
     if(line[linelen-1]=='\n') {
@@ -61,7 +63,8 @@ int main(int argc, const char* argv[]) {
  * 
  */
 void processline (char* line) {
-  
+  char** args = arg_parse(line);
+
   const pid_t cpid = fork();
   switch(cpid) {
 
@@ -71,8 +74,8 @@ void processline (char* line) {
   }
 
   case 0: {
-    execlp(line, line, (char*)(0));
-    perror("execlp");
+    execvp(args[0], args);
+    perror("execvp");
     exit(EXIT_FAILURE);
     break;
   }
@@ -90,9 +93,49 @@ void processline (char* line) {
     break;
   }
   }
+
+  free(args);
 }
 
-char** arg_parse(char*line){
-  char** args = malloc (10 * sizeof(char*));
+int helper(char* line){
+  int numWords = 0;
+  int word = 0;
+  int posLine = 0;
+
+  while(line[posLine] != '\0'){
+    if((line[posLine] != ' ') && (word == 0)){
+      numWords++;
+      word = 1;
+    }
+    if(line[posLine] == ' '){
+      word = 0;
+    }
+    posLine++;
+  }
+  return numWords;
+}
+
+
+char** arg_parse(char* line){
+  int numWords = helper(line);
+  char** args = malloc ((numWords+1) * sizeof(char*));
+  int word = 0;
+  int posLine = 0;
+  int currArgs = 0;
+
+  while(line[posLine] != '\0'){
+    if((line[posLine] != ' ') && (word == 0)){
+      word = 1;
+      args[currArgs] = &line[posLine];
+      currArgs++;
+    }
+    if((line[posLine] == ' ') && (word == 1)){
+      line[posLine] = '\0';
+      word = 0;
+    }
+    posLine++;
+  }
+  args[currArgs] = '\0';  
+  
   return args;
 }
