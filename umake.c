@@ -1,5 +1,5 @@
 /* CSCI 347 micro-make
- * 
+ *
  * 09 AUG 2017, Aran Clauson
  */
 
@@ -8,7 +8,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
-
+#include "arg_parse.h"
+#include "target.h"
 /* CONSTANTS */
 
 
@@ -17,13 +18,12 @@
 /* Process Line
  * line   The command line to execute.
  * This function interprets line as a command line.  It creates a new child
- * process to execute the line and waits for that process to complete. 
+ * process to execute the line and waits for that process to complete.
  */
 void processline(char* line);
 
-char** arg_parse(char* line);
 /* Main entry point.
- * argc    A count of command-line arguments 
+ * argc    A count of command-line arguments
  * argv    The command-line argument valus
  *
  * Micro-make (umake) reads from the uMakefile in the current working
@@ -35,10 +35,16 @@ int main(int argc, const char* argv[]) {
 
   FILE* makefile = fopen("./uMakefile", "r");
 
+  list_t* targets = list_new();
+  //list_append();
+  //list_append();
+  //list_append();
+  //list_append();
+
   size_t  bufsize = 0;
   char*   line    = NULL;
   ssize_t linelen = getline(&line, &bufsize, makefile);
-    
+
 
   while(-1 != linelen) {
 
@@ -47,7 +53,7 @@ int main(int argc, const char* argv[]) {
       line[linelen] = '\0';
     }
 
-    if(line[0] == '\t') 
+    if(line[0] == '\t')
       processline(&line[1]);
 
 
@@ -60,24 +66,32 @@ int main(int argc, const char* argv[]) {
 
 
 /* Process Line
- * 
+ *
  */
 void processline (char* line) {
-  char** args = arg_parse(line);
+  int argCount;
+  char** args = arg_parse(line, &argCount);
+
+  if(args[0] == NULL){
+    free(args);
+    return;
+  }
 
   const pid_t cpid = fork();
   switch(cpid) {
 
   case -1: {
     perror("fork");
-    break;
+    free(args);
+    return;
   }
 
   case 0: {
     execvp(args[0], args);
     perror("execvp");
     exit(EXIT_FAILURE);
-    break;
+    free(args);
+    return;
   }
 
   default: {
@@ -90,52 +104,11 @@ void processline (char* line) {
       fprintf(stderr, "wait: expected process %d, but waited for process %d",
               cpid, pid);
     }
-    break;
+    free(args);
+    return;
   }
   }
 
   free(args);
-}
-
-int helper(char* line){
-  int numWords = 0;
-  int word = 0;
-  int posLine = 0;
-
-  while(line[posLine] != '\0'){
-    if((line[posLine] != ' ') && (word == 0)){
-      numWords++;
-      word = 1;
-    }
-    if(line[posLine] == ' '){
-      word = 0;
-    }
-    posLine++;
-  }
-  return numWords;
-}
-
-
-char** arg_parse(char* line){
-  int numWords = helper(line);
-  char** args = malloc ((numWords+1) * sizeof(char*));
-  int word = 0;
-  int posLine = 0;
-  int currArgs = 0;
-
-  while(line[posLine] != '\0'){
-    if((line[posLine] != ' ') && (word == 0)){
-      word = 1;
-      args[currArgs] = &line[posLine];
-      currArgs++;
-    }
-    if((line[posLine] == ' ') && (word == 1)){
-      line[posLine] = '\0';
-      word = 0;
-    }
-    posLine++;
-  }
-  args[currArgs] = '\0';  
-  
-  return args;
+  return;
 }
