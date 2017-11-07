@@ -22,10 +22,8 @@
  */
 void processline(char* line);
 
-
-
 void runargs(list_t* list, char* targetName){
-    char* target_value = NULL;
+char* target_value = NULL;
     char** dependency_value = NULL;
     char** rule_value = NULL;
     list_iterator_t it;
@@ -33,7 +31,7 @@ void runargs(list_t* list, char* targetName){
       target_value     = (char *)iterator_target(&it);
       dependency_value = (char **)iterator_dependency(&it);
       rule_value       = (char **)iterator_rule(&it);
-    if(strcmp(targetName, target_value) == 0){
+      if(strcmp(targetName, target_value) == 0){
 
         int i = 0;
         while(dependency_value != NULL && dependency_value[i]!=NULL){
@@ -45,13 +43,9 @@ void runargs(list_t* list, char* targetName){
         while(rule_value != NULL && rule_value[j]!= NULL){
           processline(strdup(rule_value[j]));
           j++;
-
         }
-
+      }
     }
-    }
-
-
 }
 
 
@@ -61,7 +55,6 @@ int expand(char* orig, char* new, int newsize){
 
   copy = strdup(orig);
 
-
   int y = 0;
   int x = 0;
   int returnval = 0;
@@ -69,11 +62,10 @@ int expand(char* orig, char* new, int newsize){
     if(copy[i] == '$'){
       returnval = 1;
       y = i;
-
       memcpy(new, &orig[0], y);
     }
 
-    if(copy[i] == ']'){
+    if(copy[i] == '}'){
       x = i;
       copy[x] = '\0';
     }
@@ -93,11 +85,13 @@ char** charchardup(char** args){
   while (args[i] != NULL && strcmp(args[i], string2) != 0){
       i++;
   }
+
   char** args2 = (char**)malloc(100 * sizeof(char*));
 
   for(int j = 0; j < i; j++){
       args2[j] = strdup(args[j]);
   }
+
   return args2;
 }
 /* Main entry point.
@@ -145,7 +139,6 @@ int main(int argc, const char* argv[]) {
 
         int dependencyNum;
         tempDependencyfinal = arg_parse(strdup(tempDependency),&dependencyNum);
-
 
         int ruleNum;
         tempRulefinal = arg_parse2(strdup(tempRule),&ruleNum);
@@ -240,7 +233,6 @@ int main(int argc, const char* argv[]) {
     char* temp = strdup(argv[i]);
     runargs(target_list, temp);
   }
-
 
   free(line);
   return EXIT_SUCCESS;
