@@ -22,15 +22,80 @@
  */
 void processline(char* line);
 
+
+
+void runargs(list_t* list, char* targetName){
+    char* target_value = NULL;
+    char** dependency_value = NULL;
+    char** rule_value = NULL;
+    list_iterator_t it;
+    for (it = list_first(list); it; iterator_next(&it)){
+      target_value     = (char *)iterator_target(&it);
+      dependency_value = (char **)iterator_dependency(&it);
+      rule_value       = (char **)iterator_rule(&it);
+    if(strcmp(targetName, target_value) == 0){
+
+        int i = 0;
+        while(dependency_value != NULL && dependency_value[i]!=NULL){
+          runargs(list, dependency_value[i]);
+          i++;
+        }
+
+        int j = 0;
+        while(rule_value != NULL && rule_value[j]!= NULL){
+          processline(strdup(rule_value[j]));
+          j++;
+
+        }
+
+    }
+    }
+
+
+}
+
+
+int expand(char* orig, char* new, int newsize){
+
+  char* copy = (char*)malloc(100);
+
+  copy = strdup(orig);
+
+
+  int y = 0;
+  int x = 0;
+  int returnval = 0;
+  for(int i = 0; copy[i] != '\0'; i++) {
+    if(copy[i] == '$'){
+      returnval = 1;
+      y = i;
+
+      memcpy(new, &orig[0], y);
+    }
+
+    if(copy[i] == ']'){
+      x = i;
+      copy[x] = '\0';
+    }
+  }
+
+  if(returnval == 1){
+    strcat(new, getenv(&copy[y+2]));
+    strcat(new, &orig[x+1]);
+  }
+
+  return returnval;
+}
+
 char** charchardup(char** args){
   int i = 0;
-  while (args[i] != NULL){
+  const char *string2 = "|||";
+  while (args[i] != NULL && strcmp(args[i], string2) != 0){
       i++;
   }
-  char** args2 = malloc(i * sizeof *args2);
+  char** args2 = (char**)malloc(100 * sizeof(char*));
 
-  for(int j = 0; j < i; j++)
-  {
+  for(int j = 0; j < i; j++){
       args2[j] = strdup(args[j]);
   }
   return args2;
@@ -66,6 +131,7 @@ int main(int argc, const char* argv[]) {
 
   while(-1 != linelen) {
     int colonPos = 0;
+    int equalPos = 0;
 
     if(line[linelen-1]=='\n') {
       linelen -= 1;
@@ -80,10 +146,10 @@ int main(int argc, const char* argv[]) {
         int dependencyNum;
         tempDependencyfinal = arg_parse(strdup(tempDependency),&dependencyNum);
 
+
         int ruleNum;
         tempRulefinal = arg_parse2(strdup(tempRule),&ruleNum);
         list_append(target_list, strdup(tempTarget), charchardup(tempDependencyfinal), charchardup(tempRulefinal));
-
         tempTarget          = realloc(tempTarget, 100);
         tempDependency      = realloc(tempDependency, 100);
         tempRule            = realloc(tempRule, 1000);
@@ -91,20 +157,54 @@ int main(int argc, const char* argv[]) {
         tempRulefinal       = realloc(tempRulefinal, 100 * sizeof(char*));
       }
 
-      boolTarget = 1;
-      boolRules  = 0;
+      int enviroBool = 0;
+      int targetbool = 0;
 
-      //iterate through the line until the colon. this will be used for separating the rules from the depedencies
-      for(int i=0; line[i] != ':'; i++){
-        colonPos++;
+      for(int i = 0; line[i] != '\n'; i++){
+        if(line[i] == ':'){
+          targetbool = 1;
+          break;
+        }
+        if(line[i] == '='){
+          enviroBool = 1;
+          break;
+        }
       }
 
-      //creating the substrings target and dependency from the line
-      memcpy(tempTarget, &line[0], colonPos);
-      tempTarget[colonPos] = '\0';
+      if(targetbool == 1){
+        boolTarget = 1;
+        boolRules  = 0;
 
-      memcpy(tempDependency, &line[colonPos + 1], (linelen-colonPos+1));
-      tempDependency[linelen-colonPos] = '\0';
+        //iterate through the line until the colon. this will be used for separating the rules from the depedencies
+        for(int i=0; line[i] != ':'; i++){
+          colonPos++;
+        }
+
+        //creating the substrings target and dependency from the line
+        memcpy(tempTarget, &line[0], colonPos);
+        tempTarget[colonPos] = '\0';
+
+        memcpy(tempDependency, &line[colonPos + 1], (linelen-colonPos+1));
+        tempDependency[linelen-colonPos] = '\0';
+      }
+      if(enviroBool == 1){
+
+        char* tempName  = (char*)malloc(100);
+        char* tempValue = (char*)malloc(100);
+
+        for(int i=0; line[i] != '='; i++){
+          equalPos++;
+        }
+
+        //creating the substrings target and dependency from the line
+        memcpy(tempName, &line[0], equalPos);
+        tempName[equalPos] = '\0';
+
+        memcpy(tempValue, &line[equalPos + 1], (linelen-equalPos+1));
+        tempValue[linelen-equalPos] = '\0';
+
+        setenv(strdup(tempName),strdup(tempValue),1);
+      }
 
     }else{
     //if the line started with a tab and was in a target, then add it to the rules
@@ -137,25 +237,10 @@ int main(int argc, const char* argv[]) {
   //now take the command line arguments and compare them to the target_list in our linked list
 
   for(int i = 1; i < argc; i++){
-     list_iterator_t it;
-     for (it = list_first(target_list); it; iterator_next(&it)){
-
-      char* target_value      = (char *)iterator_target(&it);
-      //char** dependency_value = (char **)iterator_dependency(&it);
-      char** rule_value       = (char **)iterator_rule(&it);
-
-      int j = 0;
-      if(strcmp(argv[i], target_value) == 0){
-        const char *string = "$";
-
-        while(strcmp(rule_value[j], string) != 0){
-          processline(rule_value[j]);
-          j++;
-        }
-      }
-    }
-
+    char* temp = strdup(argv[i]);
+    runargs(target_list, temp);
   }
+
 
   free(line);
   return EXIT_SUCCESS;
@@ -164,9 +249,19 @@ int main(int argc, const char* argv[]) {
 /* Process Line
  *
  */
+
 void processline (char* line) {
   int argCount;
-  char** args = arg_parse(line, &argCount);
+  char* newline = (char*)malloc(100);
+  int enviroexpand = 0;
+  enviroexpand = expand(line, newline, 0);
+  char** args = NULL;
+  if(enviroexpand == 1){
+    args = arg_parse(newline, &argCount);
+  }
+  if(enviroexpand == 0){
+    args = arg_parse(line, &argCount);
+  }
 
   if(args[0] == NULL){
     free(args);
@@ -183,7 +278,6 @@ void processline (char* line) {
     }
 
     case 0: {
-      //printf("%s,%s",args[0],args[1]);
       execvp(args[0], args);
       perror("execvp");
       free(args);

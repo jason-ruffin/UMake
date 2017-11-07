@@ -84,7 +84,7 @@ char** arg_parse2(char* line, int* argcp){
     }
     posLine++;
   }
-  const char *c = "$";
+  const char *c = "|||";
   args[currArgs] = (char*)c;
 
   return args;
