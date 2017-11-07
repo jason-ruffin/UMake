@@ -1,6 +1,6 @@
+#include "target.h"
 #include <stdlib.h>
 #include <assert.h>
-#include "target.h"
 
 typedef struct node_st{
   void* target;
@@ -46,7 +46,7 @@ void list_free(list_t* list){
   }
 }
 
-static node_t* node_new(void* target, void* dependencies, void* rules){
+node_t* node_new(void* target, void* dependencies, void* rules){
   node_t* node = (node_t*)malloc(sizeof(node_t));
   if(node != NULL){
     node -> target = target;
@@ -63,7 +63,7 @@ void list_append(list_t* list, void* target, void* dependencies, void* rules){
   assert(node != NULL);
 
   if(list -> first == NULL){
-    assert(list->last = NULL);
+    assert(list->last == NULL);
     list -> first = node;
     list -> last = node;
   }else{
@@ -83,7 +83,6 @@ size_t list_length(list_t* list){
   return length;
 }
 
-
 list_iterator_t list_first(list_t* list){
   assert(list != NULL);
   return (list_iterator_t)list -> first;
@@ -94,11 +93,25 @@ list_iterator_t list_last(list_t* list){
   return (list_iterator_t)NULL;
 }
 
-void* iterator_item(list_iterator_t* iterator){
+void* iterator_target(list_iterator_t* iterator){
   assert(iterator != NULL);
   node_t*  node = (node_t*)(*iterator);
   assert(node != NULL);
   return node -> target;
+}
+
+void* iterator_dependency(list_iterator_t* iterator){
+  assert(iterator != NULL);
+  node_t* node = (node_t*) (*iterator);
+  assert(node != NULL);
+  return node -> dependencies;
+}
+
+void* iterator_rule(list_iterator_t* iterator){
+  assert(iterator != NULL);
+  node_t* node = (node_t*) (*iterator);
+  assert(node != NULL);
+  return node -> rules;
 }
 
 void iterator_next(list_iterator_t* iterator){

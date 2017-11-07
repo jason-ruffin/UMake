@@ -1,6 +1,5 @@
 #include <stddef.h>
 
-struct node_st;
 struct list_struct;
 typedef struct list_struct list_t;
 typedef void* list_iterator_t;
@@ -15,5 +14,8 @@ size_t list_length(list_t* list);
 list_iterator_t list_first(list_t* list);
 list_iterator_t list_last(list_t* list);
 
-void* iterator_item(list_iterator_t* iterator);
+void* iterator_target(list_iterator_t* iterator);
+void* iterator_dependency(list_iterator_t* iterator);
+void* iterator_rule(list_iterator_t* iterator);
+
 void iterator_next(list_iterator_t* iterator);
