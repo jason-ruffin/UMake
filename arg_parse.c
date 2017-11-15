@@ -1,6 +1,7 @@
 #include "arg_parse.h"
 #include <stdlib.h>
 
+//helper function simply counts the number of words
 static int helper(char* line){
   int numWords = 0;
   int word = 0;
@@ -28,6 +29,7 @@ char** arg_parse(char* line, int* argcp){
   int posLine = 0;
   int currArgs = 0;
 
+  //iterate thorugh the line to find space and increment accordingly
   while(line[posLine] != '\0'){
     if((line[posLine] != ' ') && (word == 0)){
       word = 1;
@@ -45,6 +47,7 @@ char** arg_parse(char* line, int* argcp){
   return args;
 }
 
+//helper function simply counts the number of new lines
 static int helper2(char* line){
   int numLines = 0;
   int word = 0;
@@ -72,6 +75,7 @@ char** arg_parse2(char* line, int* argcp){
   int posLine = 0;
   int currArgs = 0;
 
+  //iterate thorugh the line to find new line and increment accordingly
   while(line[posLine] != '\0'){
     if((line[posLine] != '\n') && (word == 0)){
       word = 1;
@@ -84,6 +88,7 @@ char** arg_parse2(char* line, int* argcp){
     }
     posLine++;
   }
+  //this is used as a deliminator
   const char *c = "|||";
   args[currArgs] = (char*)c;
 
