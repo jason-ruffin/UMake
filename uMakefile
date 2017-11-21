@@ -1,13 +1,2 @@
-CC=gcc
-mom=pizza
-#asdfasdfdasf
-#when there are two ${__}, the earliest ones are erased by the orig usage
-all: umake
-	echo ${CC} -o umake ${mom}umake.o arg_parse.o1
-	echo Done2#dsafg
-umake: clean#adf
-	echo ${mom} -o umake umake.o arg_parse.oasdf
-	echo Done
-clean:#adf
-	echo arg_parse.o
-	echo umake.o
+hello:
+	wc -l < log > loglog

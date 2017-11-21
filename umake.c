@@ -2,12 +2,17 @@
  *
  * 09 AUG 2017, Aran Clauson
  */
+
 #include <errno.h>
 #include "target.h"
+#include <time.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 #include <string.h>
 #include "arg_parse.h"
 
@@ -160,6 +165,8 @@ void runargs(list_t* list, char* targetName){
   char** dependency_value = NULL;
   char** rule_value = NULL;
   list_iterator_t it;
+  struct stat Obuffer;
+
   for (it = list_first(list); it; iterator_next(&it)){
     target_value     = (char *)iterator_target(&it);
     dependency_value = (char **)iterator_dependency(&it);
@@ -168,20 +175,60 @@ void runargs(list_t* list, char* targetName){
     //the recursive aspect of the function, running the dependencies before the
     //selected target
     if(strcmp(targetName, target_value) == 0){
+
       int i = 0;
       while(dependency_value != NULL && dependency_value[i]!=NULL){
         runargs(list, dependency_value[i]);
         i++;
       }
-      //run the rules of the targets
+
+      stat(targetName, &Obuffer);
+
+      int timebool = 0;
       int j = 0;
-      while(rule_value != NULL && rule_value[j]!= NULL){
-        processline(strdup(rule_value[j]));
+      while(dependency_value != NULL && dependency_value[j] != NULL){
+        struct stat Cbuffer;
+        stat(dependency_value[j], &Cbuffer);
+        if(Obuffer.st_mtime <= Cbuffer.st_mtime){
+          timebool = 1;
+        }
         j++;
+      }
+
+      //if the file doesn't exist
+      if(stat(targetName, &Obuffer ) != 0 || timebool == 1 ) {
+
+            //run the rules of the targets
+            int j = 0;
+            while(rule_value != NULL && rule_value[j]!= NULL){
+              processline(strdup(rule_value[j]));
+              j++;
+            }
+
+      }else{
+        printf("file exists or the object is newer than .c file: %s\n",targetName);
       }
     }
   }
 }
+
+
+//this is the function for removing comments from any line in the uMakefile
+int comments(char* orig, char* new, int newsize){
+  char* copy = (char*)malloc(100);
+  copy = strdup(orig);
+  int returnval = 0;
+
+  //iterate through copy looking for the '#', and only return what was before
+  for(int i = 0; copy[i] != '\0'; i++) {
+    if(copy[i] == '#'){
+      returnval = 1;
+      memcpy(new, &orig[0], i);
+    }
+  }
+return returnval;
+}
+
 
 //this function will expand all the environment variables denoted by ${___}
 int expand(char* orig, char* new, int newsize){
@@ -216,21 +263,6 @@ int expand(char* orig, char* new, int newsize){
   return returnval;
 }
 
-//this is the function for removing comments from any line in the uMakefile
-int comments(char* orig, char* new, int newsize){
-  char* copy = (char*)malloc(100);
-  copy = strdup(orig);
-  int returnval = 0;
-
-  //iterate through copy looking for the '#', and only return what was before
-  for(int i = 0; copy[i] != '\0'; i++) {
-    if(copy[i] == '#'){
-      returnval = 1;
-      memcpy(new, &orig[0], i);
-    }
-  }
-return returnval;
-}
 
 /* Main entry point.
  * argc    A count of command-line arguments
@@ -320,7 +352,6 @@ void processline (char* line) {
   char** args = NULL;
 
   int enviroexpand = 0;
-
   enviroexpand = expand(line, expandLine, 0);
 
   //depending on if there was a expansion or not, run the correct line version
@@ -329,6 +360,29 @@ void processline (char* line) {
   }else{
     args = arg_parse(line, &argCount);
   }
+  int out, in;
+
+  int i = 0;
+  while(args[i] != NULL){
+    if(strcmp(args[i], ">>") == 0 ){
+      args[i] = NULL;
+      out = open(args[i+1], O_WRONLY | O_APPEND | O_CREAT, 0666);
+      dup2(out, 1);
+      close(out);
+    }else if(strcmp(args[i], ">") == 0 ){
+      args[i] = NULL;
+      out = open(args[i+1], O_WRONLY | O_TRUNC | O_CREAT, 0666);
+      dup2(out, 1);
+      close(out);
+    }else if(strcmp(args[i], "<") == 0 ){
+      args[i] = NULL;
+      in  = open(args[i+1], O_RDONLY);
+      dup2(in, 0);
+      close(in);
+    }
+    i++;
+  }
+
 
   if(args[0] == NULL){
     free(args);
